@@ -1,5 +1,11 @@
+import logging
+from typing import Dict
+
+import torch
+import numpy
+
 from allennlp.models.model import Model
-from allennlp.modules import Embedding
+from allennlp.modules import TokenEmbedder
 from overrides import overrides
 
 from allennlp.data.vocabulary import Vocabulary
@@ -8,6 +14,9 @@ from allennlp.modules.seq2seq_decoders import SeqDecoder
 
 from clustering_tool.modules.clusterers.clusterer import Clusterer
 from clustering_tool.modules.losses import AutoencoderLoss
+from clustering_tool.modules.metrics.NormalizedMutualInformation import NormalizedMutualInformation
+
+logger = logging.getLogger(__name__)
 
 
 @Model.register("deep_clustering")
@@ -19,9 +28,11 @@ class DeepClusteringModel(Model):
     def __init__(self, vocab: Vocabulary,
                  encoder : Seq2VecEncoder,
                  clusterer: Clusterer,
+                 num_clusters,
+                 num_classes = None,
                  decoder: SeqDecoder = None,
                  autoencoder_loss: AutoencoderLoss = None,
-                 embedder: Embedding = None):
+                 embedder: TokenEmbedder = None):
         """
 
         :param vocab:
@@ -32,7 +43,7 @@ class DeepClusteringModel(Model):
         :param embedder: an input sequence token embedder. Must not be trainable
         """
 
-        super().__init__(vocab)
+        super(DeepClusteringModel, self).__init__(vocab)
 
         self._encoder = encoder
         self._decoder = decoder
@@ -40,28 +51,42 @@ class DeepClusteringModel(Model):
         self._autoencoder_loss = autoencoder_loss
         self._embedder = embedder
 
+        self.nmi = NormalizedMutualInformation(num_clusters, num_classes if num_classes else num_clusters)
+
     @overrides
-    def forward(self, input_sequence):
+    def forward(self, sentence, label = None):
         if self._embedder:
-            x = self._embedder(input_sequence)
+            x = self._embedder(sentence)
         else:
-            x = input_sequence
+            x = sentence
 
         # shape: (batch_size, bottleneck_embedding_size)
         h = self._encoder(x)
         # shape: (batch_size, clusters_num)
-        clusterer_out = self._clusterer(h)
+        clusterer_out = self._clusterer(x, h)
 
-        output_dict = {'predictions': clusterer_out['s']}
+        output_dict = {'h': h, 's': clusterer_out['s'], 'loss': clusterer_out['loss']}
 
-        if self.training:
+        if label is not None:
             # shape: (batch_size, max_seq_length, input_embedding_size)
-            output_dict['loss'] = clusterer_out['loss']
-            if self._decoder or self.autoencoder_loss:
+            if self._decoder or self._autoencoder_loss:
                 if self._decoder is None or self._autoencoder_loss is None:
                     raise RuntimeError("Decoder and autoencoder loss must be provided together")
 
                 decoded_x = self._decoder(h)
-                output_dict["loss"] += self._autoencoder_loss(x, h, decoded_x)
+                if self._autoencoder_loss:
+                    output_dict["loss"] += self._autoencoder_loss(x, h, decoded_x)
+
+            self.nmi(output_dict['s'], label)
 
         return output_dict
+
+    def decode(self, output_dict: Dict[str, torch.Tensor]):
+        cluster_labels = output_dict['s'].argmax(axis=-1)
+        output_dict['cluster'] = cluster_labels
+        return output_dict
+
+    def get_metrics(self, reset: bool = False):
+        return {"nmi": self.nmi.get_metric(reset)}
+
+
