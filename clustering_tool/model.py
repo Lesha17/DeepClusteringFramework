@@ -5,7 +5,8 @@ import torch
 import numpy
 
 from allennlp.models.model import Model
-from allennlp.modules import TokenEmbedder
+from allennlp.modules import TokenEmbedder, TextFieldEmbedder
+from allennlp.nn.util import get_text_field_mask
 from overrides import overrides
 
 from allennlp.data.vocabulary import Vocabulary
@@ -32,7 +33,7 @@ class DeepClusteringModel(Model):
                  num_classes = None,
                  decoder: SeqDecoder = None,
                  autoencoder_loss: AutoencoderLoss = None,
-                 embedder: TokenEmbedder = None):
+                 embedders: TextFieldEmbedder = None):
         """
 
         :param vocab:
@@ -49,19 +50,24 @@ class DeepClusteringModel(Model):
         self._decoder = decoder
         self._clusterer = clusterer
         self._autoencoder_loss = autoencoder_loss
-        self._embedder = embedder
+        self._embedders = embedders
 
-        self.nmi = NormalizedMutualInformation(num_clusters, num_classes if num_classes else num_clusters)
+        #self.nmi = NormalizedMutualInformation(num_clusters, num_classes if num_classes else num_clusters)
 
     @overrides
     def forward(self, sentence, label = None):
-        if self._embedder:
-            x = self._embedder(sentence)
+
+        mask = get_text_field_mask(sentence)
+        if self._embedders:
+            x = self._embedders(sentence)
         else:
-            x = sentence
+            embedded_representations = []
+            for key, value in sentence.items():
+                embedded_representations.append(value)
+            x = torch.cat(embedded_representations, dim=-1)
 
         # shape: (batch_size, bottleneck_embedding_size)
-        h = self._encoder(x)
+        h = self._encoder(x, mask)
         # shape: (batch_size, clusters_num)
         clusterer_out = self._clusterer(x, h)
 
@@ -77,7 +83,7 @@ class DeepClusteringModel(Model):
                 if self._autoencoder_loss:
                     output_dict["loss"] += self._autoencoder_loss(x, h, decoded_x)
 
-            self.nmi(output_dict['s'], label)
+            #self.nmi(output_dict['s'], label)
 
         return output_dict
 
@@ -86,7 +92,9 @@ class DeepClusteringModel(Model):
         output_dict['cluster'] = cluster_labels
         return output_dict
 
-    def get_metrics(self, reset: bool = False):
-        return {"nmi": self.nmi.get_metric(reset)}
+    #def get_metrics(self, reset: bool = False):
+     #   return {"nmi": self.nmi.get_metric(reset)}
+
+
 
 

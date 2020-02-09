@@ -22,7 +22,7 @@ class ReutersReader(DatasetReader):
             yield self.text_to_instance(data, target[0])
 
     def text_to_instance(self, data, target):
-        text_tfidf = VectorField(data.toarray())
+        text_tfidf = VectorField(data.toarray(), namespace="tfidf")
         fields = {"sentence": text_tfidf}
 
         if target is not None:

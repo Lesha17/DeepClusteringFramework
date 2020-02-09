@@ -10,7 +10,9 @@ class XieClusterer(Clusterer):
 
         self.alpha = alpha
         self.num_clusters = num_clusters
-        self.cluster_centers = torch.nn.Parameter(torch.rand((num_clusters, embedding_size)), requires_grad=True)
+        cluster_centers = torch.rand((num_clusters, embedding_size))
+        cluster_centers /= torch.max(torch.abs(cluster_centers))
+        self.cluster_centers = torch.nn.Parameter(cluster_centers, requires_grad=False)
 
     def forward(self, x, h):
         s = self.calculate_s(h)
@@ -37,4 +39,4 @@ class XieClusterer(Clusterer):
         # dimension: (batch_size, num_clusters)
         q = torch.div(q_numenator, q_denominator)
         loss = torch.nn.functional.kl_div(q, s, reduction='batchmean')
-        return -loss
+        return loss

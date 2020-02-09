@@ -18,7 +18,7 @@ class MyFeedForward(FeedForward, FromParams):
                  dropout: Union[float, List[float]] = 0.0) -> None:
         super(MyFeedForward, self).__init__(input_dim, num_layers, hidden_dims, activations, dropout = dropout)
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor, mask=None) -> torch.Tensor:
         # pylint: disable=arguments-differ
         output = inputs
         for layer, activation, dropout in zip(self._linear_layers, self._activations, self._dropout):

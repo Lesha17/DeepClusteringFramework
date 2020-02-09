@@ -1,28 +1,30 @@
 local vocab_size = 47236;
-local pca_dim = 2000;
+local embedding_dim = 1000;
 local labels_count = 103;
 
 {
     "train_data_path": "train",
     "validation_data_path": "train", // there is no "validation" dataset in sklearn rcv1
     "dataset_reader": {
-        "type": "reuters_reader",
+        "type": "nltk_reuters_reader",
+        "token_indexers": {
+            "single_id": "single_id"
+        }
     },
     "model": {
         "num_clusters": labels_count,
         "type": "deep_clustering",
         "embedders": {
-            "tfidf": {
-                "type": "pca",
-                "weights_file": "data/reuters_pca.joblib"
+            "single_id": {
+                "type": "embedding",
+                "embedding_dim": embedding_dim
             }
         },
         "encoder": {
-            "type": "feedforward",
-            "input_dim": pca_dim,
-            "num_layers": 2,
-            "hidden_dims": [100, 10],
-            "activations": "relu"
+            "type": "lstm",
+            "input_size": embedding_dim,
+            "hidden_size": 10,
+            "bidirectional": false
         },
         "clusterer": {
             "type": "xie_clusterer",
@@ -32,7 +34,7 @@ local labels_count = 103;
     },
     "iterator": {
         "type": "basic",
-        "batch_size": 100
+        "batch_size": 10
     },
     "trainer": {
         "num_epochs": 50,
