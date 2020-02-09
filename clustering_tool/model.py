@@ -1,5 +1,6 @@
 import logging
 from typing import Dict
+from allennlp.models.encoder_decoders import SimpleSeq2Seq
 
 import torch
 import numpy

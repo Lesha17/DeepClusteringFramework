@@ -1,4 +1,6 @@
 from typing import Dict
+from gensim.models import Word2Vec
+from gensim.models import KeyedVectors
 
 from allennlp.data import DatasetReader, Instance, TokenIndexer, Token
 from allennlp.data.fields import TextField, ArrayField, MultiLabelField
@@ -13,7 +15,9 @@ class NltkReutersReader(DatasetReader):
     def _read(self, file_path: str):
         files = [f for f in reuters.fileids() if f.startswith(file_path)]
         for file in files:
-            yield self.text_to_instance([Token(word) for word in reuters.words(file)], reuters.categories(file))
+            categories = reuters.categories(file)
+            for sent in reuters.sents(file):
+                yield self.text_to_instance([Token(word) for word in sent], categories )
 
 
     def text_to_instance(self, words, categories):
