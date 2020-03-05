@@ -21,7 +21,6 @@ class AutoEncoder(Model):
 
     def forward(self, sentence, label=None):
         mask = get_text_field_mask(sentence)
-        Initializer
         if self.embedders:
             x = self.embedders(sentence)
         else:

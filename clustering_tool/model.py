@@ -7,6 +7,7 @@ import numpy
 
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder, TextFieldEmbedder
+from allennlp.nn import Initializer, InitializerApplicator
 from allennlp.nn.util import get_text_field_mask
 from overrides import overrides
 
@@ -32,6 +33,7 @@ class DeepClusteringModel(Model):
                  clusterer: Clusterer,
                  num_clusters,
                  num_classes = None,
+                 initializer : Initializer = None,
                  decoder: SeqDecoder = None,
                  autoencoder_loss: AutoencoderLoss = None,
                  embedders: TextFieldEmbedder = None):
@@ -47,11 +49,15 @@ class DeepClusteringModel(Model):
 
         super(DeepClusteringModel, self).__init__(vocab)
 
-        self._encoder = encoder
-        self._decoder = decoder
-        self._clusterer = clusterer
-        self._autoencoder_loss = autoencoder_loss
-        self._embedders = embedders
+        self.encoder = encoder
+        self.decoder = decoder
+        self.clusterer = clusterer
+        self.autoencoder_loss = autoencoder_loss
+        self.embedders = embedders
+
+        if initializer is not None:
+            applicator = InitializerApplicator([("model_initializer", initializer)])
+            applicator(self)
 
         #self.nmi = NormalizedMutualInformation(num_clusters, num_classes if num_classes else num_clusters)
 
@@ -59,8 +65,8 @@ class DeepClusteringModel(Model):
     def forward(self, sentence, label = None):
 
         mask = get_text_field_mask(sentence)
-        if self._embedders:
-            x = self._embedders(sentence)
+        if self.embedders:
+            x = self.embedders(sentence)
         else:
             embedded_representations = []
             for key, value in sentence.items():
@@ -68,21 +74,21 @@ class DeepClusteringModel(Model):
             x = torch.cat(embedded_representations, dim=-1)
 
         # shape: (batch_size, bottleneck_embedding_size)
-        h = self._encoder(x, mask)
+        h = self.encoder(x, mask)
         # shape: (batch_size, clusters_num)
-        clusterer_out = self._clusterer(x, h)
+        clusterer_out = self.clusterer(x, h)
 
         output_dict = {'h': h, 's': clusterer_out['s'], 'loss': clusterer_out['loss']}
 
         if label is not None:
             # shape: (batch_size, max_seq_length, input_embedding_size)
-            if self._decoder or self._autoencoder_loss:
-                if self._decoder is None or self._autoencoder_loss is None:
+            if self.decoder or self.autoencoder_loss:
+                if self.decoder is None or self.autoencoder_loss is None:
                     raise RuntimeError("Decoder and autoencoder loss must be provided together")
 
-                decoded_x = self._decoder(h)
-                if self._autoencoder_loss:
-                    output_dict["loss"] += self._autoencoder_loss(x, h, decoded_x)
+                decoded_x = self.decoder(h)
+                if self.autoencoder_loss:
+                    output_dict["loss"] += self.autoencoder_loss(x, h, decoded_x)
 
             #self.nmi(output_dict['s'], label)
 

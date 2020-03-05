@@ -1,4 +1,6 @@
 .idea/
 models
 data
+*.zip
+*.joblib
 __pycache__/
