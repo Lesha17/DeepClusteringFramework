@@ -1,9 +1,7 @@
 import logging
 from typing import Dict
-from allennlp.models.encoder_decoders import SimpleSeq2Seq
 
 import torch
-import numpy
 
 from allennlp.models.model import Model
 from allennlp.modules import TokenEmbedder, TextFieldEmbedder
@@ -17,7 +15,6 @@ from allennlp.modules.seq2seq_decoders import SeqDecoder
 
 from clustering_tool.modules.clusterers.clusterer import Clusterer
 from clustering_tool.modules.losses import AutoencoderLoss
-from clustering_tool.modules.metrics.NormalizedMutualInformation import NormalizedMutualInformation
 
 logger = logging.getLogger(__name__)
 
