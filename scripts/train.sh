@@ -1,3 +1,8 @@
-#!/usr/bin/sh
+#!/bin/sh
 
-allennlp train configs/reuters_xie.jsonnet -s models/reuters_xie --include-package clustering_tool --include-package data_readers --recover
+model_name=$1
+
+echo $model_name.jsonnet
+
+rm -rf models/$model_name
+allennlp train configs/$model_name.jsonnet  -s models/$model_name --include-package data_readers --include-package clustering_tool
