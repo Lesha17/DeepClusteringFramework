@@ -1,5 +1,7 @@
+import os
 import torch
 import numpy as np
+import pandas as pd
 from scipy.optimize import linear_sum_assignment
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import normalized_mutual_info_score, accuracy_score, f1_score, roc_auc_score
@@ -63,3 +65,43 @@ def classify(model, dataloader):
     return {'acc': accuracy_score(labels_test, labels_predict),
             'f1': f1_score(labels_test, labels_predict, average='weighted'),
             'roc_auc': roc_auc_score(labels_test, probas_predict, average='weighted', multi_class='ovr')}
+
+
+def _parse_file(metrics_filename, data_name, emb_name, attempt, loss_name):
+    if not os.path.exists(metrics_filename):
+        print('No file:', metrics_filename)
+        return None
+
+    with open(metrics_filename, 'r') as file:
+        metrics = eval(file.readline())
+        line = file.readline()
+        row = {'data': data_name, 'embed': emb_name, 'attempt': attempt, 'loss': loss_name}
+        row.update(metrics)
+        if line:
+            classification = eval(line + '\n')
+            row['f1'] = classification['f1']
+            row['roc-auc'] = classification['roc_auc']
+
+    return row
+
+def aggregate_metrics(ouput_file, metrics_dir = 'output/metrics', num_attempts=5):
+    results = []
+
+    for data_name in 'SearchSnippets,Biomedical,StackOverflow'.split(','):
+        for emb_name in 'bert_cls,bert_avg,bert_sif,bert_max'.split(','):
+            for attempt in range(num_attempts):
+                metrics_filename = os.path.join(metrics_dir, f'metrics_{data_name}_{emb_name}_{attempt}_initial.json')
+                row = _parse_file(metrics_filename, data_name, emb_name, attempt, 'initial')
+                if row is not None:
+                    results.append(row)
+
+                for loss_name in 'kl_div,cross_entropy,bce,dot_product'.split(','):
+                    metrics_filename = os.path.join(metrics_dir,
+                                                    f'metrics_{data_name}_{emb_name}_{attempt}_{loss_name}.json')
+
+                    row = _parse_file(metrics_filename, data_name, emb_name, attempt, loss_name)
+                    if row is not None:
+                        results.append(row)
+
+    df = pd.DataFrame(results)
+    df.to_csv(ouput_file)
