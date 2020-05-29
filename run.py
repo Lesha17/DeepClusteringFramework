@@ -109,16 +109,16 @@ def _train_models(parser):
                     model = torch.load(ae_filename)
                     model.clusterer.loss_fn = loss_fn
                     train_model(model, dataloader, parser.start_lr, parser.end_lr, parser.num_epochs, with_decoder=False)
-                    model_filename = os.path.join(parser.models_dir, 'model_{}_{}_{}.pt'.format(data_name, emb_name, num))
-                    metrics_filename = os.path.join(parser.metrics_dir, 'metrics_{}_{}_{}.json'.format(data_name, emb_name, num))
+                    model_filename = os.path.join(parser.models_dir, f'model_{data_name}_{emb_name}_{num}_{loss_name}.pt')
+                    metrics_filename = os.path.join(parser.metrics_dir, f'metrics_{data_name}_{emb_name}_{num}_{loss_name}.json')
                     torch.save(model, model_filename)
                     save_metrics(model, dataloader, metrics_filename)
 
                     model = torch.load(ae_filename)
                     model.clusterer.loss_fn = loss_fn
                     train_model(model, dataloader, parser.start_lr, parser.end_lr, parser.num_epochs, with_decoder=True)
-                    model_filename = os.path.join(parser.models_dir, 'model_{}_{}_{}_dec.pt'.format(data_name, emb_name, num))
-                    metrics_filename = os.path.join(parser.metrics_dir, 'metrics_{}_{}_{}_dec.json'.format(data_name, emb_name, num))
+                    model_filename = os.path.join(parser.models_dir, f'model_{data_name}_{emb_name}_{num}_{loss_name}_dec.pt')
+                    metrics_filename = os.path.join(parser.metrics_dir, f'metrics_{data_name}_{emb_name}_{num}_{loss_name}_dec.json')
                     torch.save(model, model_filename)
                     save_metrics(model, dataloader, metrics_filename)
 
