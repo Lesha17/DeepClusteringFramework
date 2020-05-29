@@ -89,8 +89,8 @@ def _train_models(parser):
     for data_name in parser.datasets.split(','):
         for emb_name in parser.embed_types.split(','):
             for num in range(parser.num):
-                emb_filename = os.path.join(parser.data_dir, '{}_{}.npy'.format(data_name, emb_name))
-                labels_filename = os.path.join(parser.data_dir, '{}_label.npy'.format(data_name))
+                emb_filename = os.path.join(parser.embeds_dir, '{}_{}.npy'.format(data_name, emb_name))
+                labels_filename = os.path.join(parser.embeds_dir, '{}_label.npy'.format(data_name))
                 ae_filename = os.path.join(parser.ae_dir, '{}_{}_ae_{}.pt'.format(data_name, emb_name, num))
 
                 dataloader = read_saved(emb_filename, labels_filename, device=device)
@@ -109,8 +109,8 @@ def _train_models(parser):
                     model = torch.load(ae_filename)
                     model.clusterer.loss_fn = loss_fn
                     train_model(model, dataloader, parser.start_lr, parser.end_lr, parser.num_epochs, with_decoder=False)
-                    model_filename = os.path.join(parser.models_dir, f'model_{data_name}_{emb_name}_{num}_{loss_name}.pt')
                     metrics_filename = os.path.join(parser.metrics_dir, f'metrics_{data_name}_{emb_name}_{num}_{loss_name}.json')
+                    model_filename = os.path.join(parser.models_dir, f'model_{data_name}_{emb_name}_{num}_{loss_name}.pt')
                     torch.save(model, model_filename)
                     save_metrics(model, dataloader, metrics_filename)
 
