@@ -30,14 +30,14 @@ def kl_div_loss(s, q):
     return torch.nn.functional.kl_div(torch.log(s), q.detach(), reduction='batchmean')
 
 def cross_entropy_loss(s, q):
-    return torch.mean(-q.detach() * torch.log(s))
+    return torch.mean(torch.sum(-q.detach() * torch.log(s), dim=1))
 
 def binary_cross_entropy_loss(s, q):
     q = q.detach()
-    return torch.mean(-q * torch.log(s) - (1 - q) * torch.log(1 - s))
+    return torch.mean(torch.sum(-q * torch.log(s) - (1 - q) * torch.log(1 - s), dim=1))
 
 def dot_product_loss(s, q):
-    return torch.mean(-s * q.detach())
+    return torch.mean(torch.sum(-q.detach() * s, dim=1))
 
 class ClustererWithCenters():
     def __init__(self):
