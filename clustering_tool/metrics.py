@@ -93,6 +93,7 @@ def aggregate_metrics(ouput_file, metrics_dir = 'output/metrics', num_attempts=5
                 metrics_filename = os.path.join(metrics_dir, f'metrics_{data_name}_{emb_name}_{attempt}_initial.json')
                 row = _parse_file(metrics_filename, data_name, emb_name, attempt, 'initial')
                 if row is not None:
+                    row['decoder'] = False
                     results.append(row)
 
                 for loss_name in 'kl_div,cross_entropy,bce,dot_product'.split(','):
@@ -101,7 +102,46 @@ def aggregate_metrics(ouput_file, metrics_dir = 'output/metrics', num_attempts=5
 
                     row = _parse_file(metrics_filename, data_name, emb_name, attempt, loss_name)
                     if row is not None:
+                        row['decoder'] = False
+                        results.append(row)
+
+                    metrics_filename = os.path.join(metrics_dir,
+                                                    f'metrics_{data_name}_{emb_name}_{attempt}_{loss_name}_dec.json')
+                    row = _parse_file(metrics_filename, data_name, emb_name, attempt, loss_name)
+                    if row is not None:
+                        row['decoder'] = True
                         results.append(row)
 
     df = pd.DataFrame(results)
     df.to_csv(ouput_file)
+
+def metrics_to_tex(metrics_file, outfile):
+    prev_data = ''
+    prev_embed = ''
+    prev_loss = ''
+
+    LOSSES = {'cross_entropy': 'CE', 'bce': 'BCE', 'kl_div': 'KL', 'dot_product': '$\cdot$', 'initial': '-'}
+
+    df = pd.read_csv(metrics_file, index_col='Unnamed: 0')
+    df_grouped = df.groupby(['data', 'embed', 'loss', 'decoder'], sort=False).agg(['mean', 'std']).drop(['attempt'], axis=1) * 100
+
+    with open(outfile, 'w') as f:
+        for index, row in df_grouped.iterrows():
+            data, embed, loss, decoder = index
+            embed_str = embed.replace('bert_', '') if prev_embed != embed else ''
+            loss_str = LOSSES[loss] if prev_loss != loss else ''
+            decoder_str = '+' if decoder else '-'
+
+            str = f"{embed_str} & {loss_str} & {decoder_str}" + \
+                  f"& ${row['ACC']['mean']:.1f} \\pm {row['ACC']['std']:.1f}$ & ${row['NMI']['mean']:.1f} \\pm {row['NMI']['std']:.1f}$" + \
+                  f"& ${row['f1']['mean']:.1f} \\pm {row['f1']['std']:.1f}$ & ${row['roc-auc']['mean']:.1f} \\pm {row['roc-auc']['std']:.1f}$"
+
+            if prev_data != data:
+                f.write(data + '\n')
+
+            f.write(str)
+            f.write('\\\\ \n')
+
+            prev_data = data
+            prev_embed = embed
+            prev_loss = loss

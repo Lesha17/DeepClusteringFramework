@@ -1,6 +1,8 @@
 .idea/
+.ipynb_checkpoints/
 models
 data
+output
 *.zip
 *.joblib
 __pycache__/
