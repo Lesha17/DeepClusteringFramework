@@ -2,11 +2,12 @@ import torch
 from collections import Counter
 import tqdm
 
-def get_unigrams(file, tokenizer):
+
+def get_unigrams(filepath, tokenizer):
     word_count = Counter()
     total_cnt = 0
-    with open(file, 'r') as snippets_file:
-        for snippet in tqdm.tqdm(snippets_file, disable=True):
+    with open(filepath, 'r') as file:
+        for snippet in tqdm.tqdm(file, disable=True):
             with torch.no_grad():
                 ids = tokenizer.encode(snippet, add_special_tokens=True)
                 for id in ids:

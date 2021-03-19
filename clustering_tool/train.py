@@ -3,6 +3,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import torch
 from clustering_tool.metrics import calculate_metrics
+from allennlp.data import DatasetReader
 
 
 def constant_loss_weight_fn(weight):
@@ -41,7 +42,7 @@ def get_batches(model, dataloader):
     return x_batches, h_batches, label_batches
 
 
-def train(model, dataloader, losses_weights_fns, lr, gamma=1.0, num_epochs=10):
+def train(model, dataloader, losses_weights_fns, lr, gamma=1.0, num_epochs=10, update_q_per_epoch=0):
     opt = torch.optim.Adam(model.parameters(), lr)
     sheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma)
     loss_hist = defaultdict(list)

@@ -1,9 +1,10 @@
 from clustering_tool.autoencoder import *
 from clustering_tool.metrics import classify
+from clustering_tool.text_embedders import BertEmbedder
 from clustering_tool.train import *
 from clustering_tool.clusterer import *
 from clustering_tool.model import *
-from clustering_tool.datasets import *
+from clustering_tool.datapipeline import *
 from clustering_tool.embedders.bert import *
 from clustering_tool.embedders.common import *
 import os
